@@ -20,6 +20,7 @@ DOCUMENTATION = '''
         - Can retrieve LXC/QEMU configuration as facts.
     extends_documentation_fragment:
         - inventory_cache
+        - constructed
     options:
       plugin:
         description: The name of this plugin, it should always be set to C(community.general.proxmox) for this plugin to recognize it as it's own.
@@ -79,6 +80,7 @@ user: ansible@pve
 password: secure
 validate_certs: no
 
+strict: yes
 # places hosts in dynamically-created groups based on a variable value.
 keyed_groups:
 # places each host in a group named 'tag_(tag name)_(tag value)' for each tag on a VM.
@@ -120,6 +122,7 @@ class InventoryModule(BaseInventoryPlugin, Cacheable, Constructable):
         self.session = None
         self.cache_key = None
         self.use_cache = None
+        self.strict = None
 
     def verify_file(self, path):
 
@@ -254,11 +257,8 @@ class InventoryModule(BaseInventoryPlugin, Cacheable, Constructable):
             except NameError:
                 return None
 
-        # Use constructed if applicable
-        strict = self.get_option('strict')
-
         # Create groups based on variable values and add the corresponding hosts to it
-        self._add_host_to_keyed_groups(self.get_option('keyed_groups'), {}, name, strict=strict)
+        self._add_host_to_keyed_groups(self.get_option('keyed_groups'), {}, name, strict=self.strict)
 
     def _get_vm_status(self, node, vmid, vmtype, name):
         ret = self._get_json("%s/api2/json/nodes/%s/%s/%s/status/current" % (self.proxmox_url, node, vmtype, vmid))
@@ -380,6 +380,7 @@ class InventoryModule(BaseInventoryPlugin, Cacheable, Constructable):
         self.proxmox_password = self.get_option('password')
         self.cache_key = self.get_cache_key(path)
         self.use_cache = cache and self.get_option('cache')
+        self.strict = self.get_option('strict')
 
         # actually populate inventory
         self._populate()
