@@ -78,6 +78,12 @@ url: http://localhost:8006
 user: ansible@pve
 password: secure
 validate_certs: no
+
+# places hosts in dynamically-created groups based on a variable value.
+keyed_groups:
+# places each host in a group named 'tag_(tag name)_(tag value)' for each tag on a VM.
+- prefix: 
+  key: tags
 '''
 
 import re
@@ -86,7 +92,7 @@ from ansible.module_utils.common._collections_compat import MutableMapping
 from distutils.version import LooseVersion
 
 from ansible.errors import AnsibleError
-from ansible.plugins.inventory import BaseInventoryPlugin, Cacheable
+from ansible.plugins.inventory import BaseInventoryPlugin, Cacheable, Constructable
 from ansible.module_utils.six.moves.urllib.parse import urlencode
 
 # 3rd party imports
@@ -99,7 +105,7 @@ except ImportError:
     HAS_REQUESTS = False
 
 
-class InventoryModule(BaseInventoryPlugin, Cacheable):
+class InventoryModule(BaseInventoryPlugin, Cacheable, Constructable):
     ''' Host inventory parser for ansible using Proxmox as source. '''
 
     NAME = 'community.general.proxmox'
@@ -247,6 +253,12 @@ class InventoryModule(BaseInventoryPlugin, Cacheable):
                 self.inventory.set_variable(name, key, value)
             except NameError:
                 return None
+
+        # Use constructed if applicable
+        strict = self.get_option('strict')
+
+        # Create groups based on variable values and add the corresponding hosts to it
+        self._add_host_to_keyed_groups(self.get_option('keyed_groups'), {}, name, strict=strict)
 
     def _get_vm_status(self, node, vmid, vmtype, name):
         ret = self._get_json("%s/api2/json/nodes/%s/%s/%s/status/current" % (self.proxmox_url, node, vmtype, vmid))
