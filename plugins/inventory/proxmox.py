@@ -122,7 +122,6 @@ class InventoryModule(BaseInventoryPlugin, Cacheable, Constructable):
         self.session = None
         self.cache_key = None
         self.use_cache = None
-        self.strict = None
 
     def verify_file(self, path):
 
@@ -256,6 +255,12 @@ class InventoryModule(BaseInventoryPlugin, Cacheable, Constructable):
                 self.inventory.set_variable(name, key, value)
             except NameError:
                 return None
+
+        # Composed variables
+        self._set_composite_vars(self.get_option('compose'), self.inventory.get_host(name).get_vars(), name, strict=self.strict)
+        
+        # Complex groups based on jinja2 conditionals, hosts that meet the conditional are added to group
+        self._add_host_to_composed_groups(self.get_option('groups'), {}, name, strict=self.strict)
 
         # Create groups based on variable values and add the corresponding hosts to it
         self._add_host_to_keyed_groups(self.get_option('keyed_groups'), {}, name, strict=self.strict)
