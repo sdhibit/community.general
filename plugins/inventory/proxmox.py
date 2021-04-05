@@ -256,14 +256,16 @@ class InventoryModule(BaseInventoryPlugin, Cacheable, Constructable):
             except NameError:
                 return None
 
+        strict = self.get_option('strict')
+
         # Composed variables
-        self._set_composite_vars(self.get_option('compose'), self.inventory.get_host(name).get_vars(), name, strict=self.strict)
+        self._set_composite_vars(self.get_option('compose'), self.inventory.get_host(name).get_vars(), name, strict=strict)
         
         # Complex groups based on jinja2 conditionals, hosts that meet the conditional are added to group
-        self._add_host_to_composed_groups(self.get_option('groups'), {}, name, strict=self.strict)
+        self._add_host_to_composed_groups(self.get_option('groups'), {}, name, strict=strict)
 
         # Create groups based on variable values and add the corresponding hosts to it
-        self._add_host_to_keyed_groups(self.get_option('keyed_groups'), {}, name, strict=self.strict)
+        self._add_host_to_keyed_groups(self.get_option('keyed_groups'), {}, name, strict=strict)
 
     def _get_vm_status(self, node, vmid, vmtype, name):
         ret = self._get_json("%s/api2/json/nodes/%s/%s/%s/status/current" % (self.proxmox_url, node, vmtype, vmid))
@@ -385,7 +387,6 @@ class InventoryModule(BaseInventoryPlugin, Cacheable, Constructable):
         self.proxmox_password = self.get_option('password')
         self.cache_key = self.get_cache_key(path)
         self.use_cache = cache and self.get_option('cache')
-        self.strict = self.get_option('strict')
 
         # actually populate inventory
         self._populate()
